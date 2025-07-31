@@ -1,9 +1,10 @@
 from PIL import Image
+import os
 import math
 from pprint import pprint
 
 img = Image.open("./Regulus_Icon.jpg")
-#img = img.resize((128,128))
+img = img.resize((75,75))
 print(f"Successfully loaded image!\nImage size: {img.width} x {img.height}")
 
 def rgb_to_brightness(data, transform_type):
@@ -23,7 +24,6 @@ def rgb_to_brightness(data, transform_type):
             print("Nothing!")
             
 def negative_filter(data):
-    #print([tuple(map(lambda x: abs(x - 255), item)) for item in data])
     return [tuple(map(lambda x: abs(x - 255), item)) for item in data]
 
 def print_ascii_chars(data):
@@ -33,14 +33,9 @@ def print_ascii_chars(data):
     for index, item in enumerate(data):
         data[index] = ascii_chars[ min(math.floor(data[index] / interval), number_chars - 1) ]
          #print(data[index])
-     
+    ascii_string = ""
     for i in range(0, len(data), img.width):
-        print(*data[i:i+img.width])
+        ascii_string += "".join(data[i:i+img.width]) + "\n"
     
-                    
-data = [img.getpixel((x,y)) for y in range(img.height) for x in range(img.width)]
-#data = rgb_to_brightness(data, "average")
-#print_ascii_chars(data)
-data = negative_filter(data)
-data = rgb_to_brightness(data, "average")
-print_ascii_chars(data)
+    return ascii_string.strip()
+
