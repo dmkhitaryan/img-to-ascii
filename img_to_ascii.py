@@ -1,9 +1,9 @@
 from PIL import Image
 import math
+import gui
 from pprint import pprint
 
 def rgb_to_brightness(data, transform_type):
-    #print(data)
     match transform_type:
         case "average":
             return [math.floor(sum(item) / 3) for item in data]
@@ -19,7 +19,8 @@ def rgb_to_brightness(data, transform_type):
             print("Nothing!")
             
 def negative_filter(data):
-    return [tuple(map(lambda x: abs(x - 255), item)) for item in data]
+    return [abs(item - 255) for item in data]
+    #return [tuple(map(lambda x: abs(x - 255), item)) for item in data]
 
 def print_ascii_chars(data, img):
     ascii_chars = "`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
