@@ -2,39 +2,50 @@ import os
 import sys
 import img_to_ascii
 from PIL import Image
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QInputDialog, QLineEdit, QScrollArea, QFileDialog, QComboBox, QHBoxLayout
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QInputDialog, QLineEdit, QScrollArea, QFileDialog, QComboBox, QHBoxLayout 
 from PyQt6.QtGui import QFont
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent, QObject
 
-
+# TODO:
+# 1. Finish implementing zoom feature via mouse scroll.
+# 2. Finish program crashing when using other buttons than "Load image" first.
+#			Make the rest greyed out or something.
 class InputWindow(QWidget):
 	def __init__(self):
 		super().__init__()
 		self.initWindow()
 	
 	def initWindow(self):
+		self.font_size = 12
 		self.data = None
 		self.ascii_image = None
 		self.img = None
 		self.setWindowTitle("IMG-to-ASCII")
 		self.setGeometry(300, 300, 800, 600)
+
 		layout = QVBoxLayout()
-		horizontal_row = QHBoxLayout()
-		
+
+		self.zoom_in = QPushButton("+")
+		self.zoom_out = QPushButton("-")
+		self.zoom_in.setFixedSize(40, 40)
+		self.zoom_out.setFixedSize(40, 40)
+		self.zoom_in.clicked.connect(self.zoom_text_in)
+		self.zoom_out.clicked.connect(self.zoom_text_out)
+
 		self.btn_negative = QPushButton("Negative", self)
 		self.btn_negative.setCheckable(True)
 		self.btn_negative.clicked.connect(self.apply_neg_filter)
-		horizontal_row.addWidget(self.btn_negative)
-		layout.addLayout(horizontal_row)
 		
 		self.scroll_area = QScrollArea()
 		self.scroll_area.setWidgetResizable(True)
+		self.scroll_area.viewport().installEventFilter(self)
 		
 		self.output_label = QLabel("Not provided", self)
-		self.output_label.setFont(QFont("Courier New", 12))
+		self.output_label.setFont(QFont("Courier New", self.font_size))
 		self.output_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		self.output_label.setWordWrap(True)
-		self.scroll_area.setWidget(self.output_label)	
+		self.scroll_area.setWidget(self.output_label)
+		layout.addWidget(self.btn_negative)
 		layout.addWidget(self.scroll_area)
 
 		self.dropdown_conversions = QComboBox()
@@ -47,7 +58,40 @@ class InputWindow(QWidget):
 		layout.addWidget(self.btn_input)
 		
 		self.setLayout(layout)
+
+	def isScrollZoom(self, source, event):
+		if source == self.scroll_area_viewport() and event.type() == QEvent.Type.Wheel:
+			if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+				self.zoom_with_wheel()
+				return True
+			else:
+				return False
+	
+		return super().eventFilter(source, event)
+	
+	def zoom_with_wheel(self, event):
+		diff = event.angleDelta().y()
+
+		if diff > 0:
+			self.zoom_text_in()
+		elif diff < 0: 
+			self.zoom_text_out()
 		
+		event.ignore()
+
+	def zoom_text_in(self):
+		if self.font_size <= 48:
+			self.font_size += 2
+			self.update_font_size()
+
+	def zoom_text_out(self):
+		if self.font_size >= 4:
+			self.font_size -= 2
+			self.update_font_size()
+			
+	def update_font_size(self):
+		self.output_label.setFont(QFont("Courier New", self.font_size))
+
 	def apply_neg_filter(self):
 		self.data = img_to_ascii.negative_filter(self.data)
 		self.ascii_image = self.data.copy()
@@ -68,8 +112,11 @@ class InputWindow(QWidget):
 			
 	def load_image(self):
 		filename = QFileDialog.getOpenFileName(self, self.tr("Select an image"), os.path.expanduser("~"), self.tr("Image Files (*.png *.jpg *.bmp)"))
-		self.img = Image.open(filename[0])
-		self.img = self.img.resize((75,75))
+		try:
+			self.img = Image.open(filename[0])
+			self.img = self.img.resize((min(self.img.width, 1366), min(self.img.height, 768)))
+		except FileNotFoundError:
+			return
 		print(f"Successfully loaded image!\nImage size: {self.img.width} x {self.img.height}")
 		
 
