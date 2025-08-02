@@ -26,13 +26,6 @@ class InputWindow(QWidget):
 
 		layout = QVBoxLayout()
 
-		self.zoom_in = QPushButton("+")
-		self.zoom_out = QPushButton("-")
-		self.zoom_in.setFixedSize(40, 40)
-		self.zoom_out.setFixedSize(40, 40)
-		self.zoom_in.clicked.connect(self.zoom_text_in)
-		self.zoom_out.clicked.connect(self.zoom_text_out)
-
 		self.btn_negative = QPushButton("Negative", self)
 		self.btn_negative.setCheckable(True)
 		self.btn_negative.setEnabled(False)
@@ -130,9 +123,7 @@ class InputWindow(QWidget):
 				self.dropdown_conversions.setEnabled(True)
 		except FileNotFoundError:
 			return
-		
-		
-
+				
 def main():
 		app = QApplication(sys.argv)
 		test = InputWindow()
