@@ -2,14 +2,13 @@ import os
 import sys
 import img_to_ascii
 from PIL import Image
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QInputDialog, QLineEdit, QScrollArea, QFileDialog, QComboBox, QHBoxLayout 
-from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout, QInputDialog, QLineEdit, QScrollArea, QFileDialog, QComboBox, QHBoxLayout, QCheckBox 
+from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtCore import Qt, QEvent
 
 # TODO:
 # 1. Tidy up the code a bit?
-# 2. Implement (multi)-colour conversions.
-# 3. Write a README.
+# 2. Write a README.
 
 class InputWindow(QWidget):
 	def __init__(self):
@@ -17,19 +16,40 @@ class InputWindow(QWidget):
 		self.initWindow()
 	
 	def initWindow(self):
+		self.isRed, self.isGreen, self.isBlue = False, False, False
 		self.font_size = 12
 		self.data = None
 		self.ascii_image = None
 		self.img = None
 		self.setWindowTitle("IMG-to-ASCII")
 		self.setGeometry(300, 300, 800, 600)
+		
+		self.default_rgb = QColor(255, 255, 255)
 
 		layout = QVBoxLayout()
+		h_layout = QHBoxLayout()
+		
+		checkbox_layout = QVBoxLayout()
+		self.checkbox_red = QCheckBox(text = "Red")
+		self.checkbox_green = QCheckBox(text = "Green")
+		self.checkbox_blue = QCheckBox(text = "Blue")
+		self.checkbox_red.setEnabled(False)
+		self.checkbox_green.setEnabled(False)
+		self.checkbox_blue.setEnabled(False)
+		checkbox_layout.addWidget(self.checkbox_red)
+		checkbox_layout.addWidget(self.checkbox_green)
+		checkbox_layout.addWidget(self.checkbox_blue)
+		self.checkbox_red.stateChanged.connect(lambda state, cb_red = self.checkbox_red : self.onStateChanged(cb_red))
+		self.checkbox_green.stateChanged.connect(lambda state, cb_green = self.checkbox_green : self.onStateChanged(cb_green))
+		self.checkbox_blue.stateChanged.connect(lambda state, cb_blue = self.checkbox_blue : self.onStateChanged(cb_blue))
 
 		self.btn_negative = QPushButton("Negative", self)
 		self.btn_negative.setCheckable(True)
 		self.btn_negative.setEnabled(False)
 		self.btn_negative.clicked.connect(self.apply_neg_filter)
+		
+		h_layout.addWidget(self.btn_negative)
+		h_layout.addLayout(checkbox_layout)
 		
 		self.scroll_area = QScrollArea()
 		self.scroll_area.setWidgetResizable(True)
@@ -41,7 +61,7 @@ class InputWindow(QWidget):
 		self.output_label.setWordWrap(True)
 		self.scroll_area.setWidget(self.output_label)
 		self.scroll_area.installEventFilter(self)
-		layout.addWidget(self.btn_negative)
+		layout.addLayout(h_layout)
 		layout.addWidget(self.scroll_area)
 
 		self.dropdown_conversions = QComboBox()
@@ -56,6 +76,21 @@ class InputWindow(QWidget):
 		
 		self.setLayout(layout)
 
+	def onStateChanged(self, button):
+		match button.text():
+			case "Red":
+				self.isRed = not self.isRed
+			case "Green":
+				self.isGreen = not self.isGreen
+			case "Blue":
+				self.isBlue = not self.isBlue
+			case _:
+				return
+		R = self.default_rgb.red() * self.isRed
+		G = self.default_rgb.green() * self.isGreen
+		B = self.default_rgb.blue() * self.isBlue
+		self.output_label.setStyleSheet(f"color: rgb({R}, {G}, {B});")
+			
 	def eventFilter(self, source, event):
 		if source == self.scroll_area and event.type() == QEvent.Type.Wheel:
 			if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -118,9 +153,12 @@ class InputWindow(QWidget):
 			self.img = self.img.resize((min(self.img.width, 1366), min(self.img.height, 768)))
 			print(f"Successfully loaded image!\nImage size: {self.img.width} x {self.img.height}")
 
-			if (not self.btn_negative.isEnabled()) and (not self.dropdown_conversions.isEnabled()):
+			if (not self.btn_negative.isEnabled()):
 				self.btn_negative.setEnabled(True)
 				self.dropdown_conversions.setEnabled(True)
+				self.checkbox_red.setEnabled(True)
+				self.checkbox_green.setEnabled(True)
+				self.checkbox_blue.setEnabled(True)
 		except FileNotFoundError:
 			return
 				
